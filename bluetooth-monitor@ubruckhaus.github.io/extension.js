@@ -28,7 +28,7 @@ import {Slider} from 'resource:///org/gnome/shell/ui/slider.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const RESTART_DELAY = 5;          // seconds before a collector that exited starts again
-const PENDING_TIMEOUT = 20;       // seconds a Bluetooth action may show "Connecting…"
+const PENDING_TIMEOUT = 60;       // seconds a Bluetooth action may show "Connecting…" (pair + connect take up to 45 s)
 const SCAN_SECONDS = 300;         // bluetoothctl's own scan timeout (a backstop)
 const SEND_DELAY = 500;           // ms a slider waits after the last change before writing
 const DIM = 150;                  // opacity of secondary text
@@ -254,15 +254,34 @@ class BluetoothModel {
             this._deviceIds.set(device, device.connect('notify', () => this._changed()));
     }
 
-    // Many property changes arrive together: tell the panel once.
+    // Many property changes arrive together: tell the panel once. Devices that are gone
+    // (removed, or the adapter changed, which GnomeBluetooth reports without per-device
+    // signals) lose their watcher here.
     _changed() {
         if (this._idleId)
             return;
         this._idleId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
             this._idleId = 0;
+            this._reconcile();
             this._onChange();
             return GLib.SOURCE_REMOVE;
         });
+    }
+
+    _reconcile() {
+        const store = this._client.get_devices();
+        const present = new Set();
+        for (let i = 0; i < store.get_n_items(); i++) {
+            const device = store.get_item(i);
+            present.add(device);
+            this._watch(device);
+        }
+        for (const [device, id] of [...this._deviceIds]) {
+            if (!present.has(device)) {
+                device.disconnect(id);
+                this._deviceIds.delete(device);
+            }
+        }
     }
 
     get hasAdapter() {
@@ -279,7 +298,8 @@ class BluetoothModel {
         for (let i = 0; i < store.get_n_items(); i++) {
             const d = store.get_item(i);
             const name = String(d.alias || d.name || '').trim();
-            const percent = d.battery_type !== undefined && d.battery_type !== GnomeBluetooth.BatteryType.NONE
+            // Only a real percentage; a coarse level would read as "0 %".
+            const percent = d.battery_type === GnomeBluetooth.BatteryType.PERCENTAGE
                 ? Math.round(d.battery_percentage) : -1;
             out.push({
                 address: String(d.address || ''), name, icon: String(d.icon || ''),
@@ -422,11 +442,14 @@ function separator() {
 // A slider for min..max in steps; `onSet` gets the value once the user lets go (or
 // stops scrolling for a moment).
 class StepSlider {
-    constructor(min, max, step, value, format, onSet, owner) {
+    constructor(min, max, step, value, format, onSet, owner, choices = null) {
         this._min = min;
         this._max = Math.max(max, min + 1);
         this._step = step > 0 ? step : 1;
+        // A device with a list of DPI values (not evenly spaced) only takes those.
+        this._choices = Array.isArray(choices) && choices.length ? choices.filter(Number.isInteger) : null;
         this._sent = value;
+        this._latest = value;
         this._onSet = onSet;
         this._owner = owner;
         this.slider = new Slider((value - this._min) / (this._max - this._min));
@@ -434,7 +457,8 @@ class StepSlider {
         this.valueLabel = label(format(value), 'btmon-caption btmon-value');
         this._format = format;
         this.slider.connect('notify::value', () => {
-            this.valueLabel.text = format(this.value);
+            this._latest = this.value;
+            this.valueLabel.text = format(this._latest);
             if (!this._dragging)
                 this._sendLater();
         });
@@ -442,22 +466,27 @@ class StepSlider {
             this._dragging = true;
             owner.holdUpdates(true);
         });
+        // Send first: releasing the hold can rebuild the panel and destroy this slider.
         this.slider.connect('drag-end', () => {
             this._dragging = false;
-            owner.holdUpdates(false);
             this._send();
+            owner.holdUpdates(false);
         });
+        // Rebuilt away while a scroll or key change waited: send it now, not never.
         this.slider.connect('destroy', () => {
             if (this._timer)
-                GLib.source_remove(this._timer);
-            this._timer = 0;
-            if (this._dragging)
+                this._send();
+            if (this._dragging) {
+                this._dragging = false;
                 owner.holdUpdates(false);
+            }
         });
     }
 
     get value() {
         const raw = this._min + this.slider.value * (this._max - this._min);
+        if (this._choices)
+            return this._choices.reduce((best, c) => (Math.abs(c - raw) < Math.abs(best - raw) ? c : best), this._choices[0]);
         return Math.min(this._max, Math.max(this._min, this._min + Math.round((raw - this._min) / this._step) * this._step));
     }
 
@@ -475,7 +504,7 @@ class StepSlider {
         if (this._timer)
             GLib.source_remove(this._timer);
         this._timer = 0;
-        const v = this.value;
+        const v = this._latest;
         if (v !== this._sent) {
             this._sent = v;
             this._onSet(v);
@@ -857,7 +886,7 @@ class DetailPanel {
             const head = hbox();
             head.add_child(label('Pointer speed (DPI)', 'btmon-caption', {x_expand: true}));
             const fmt = v => `${v}${v === d.dpi.default ? ' · default' : ''}`;
-            const s = new StepSlider(d.dpi.min, d.dpi.max, d.dpi.step, d.dpi.value, fmt, v => set('dpi', v), this);
+            const s = new StepSlider(d.dpi.min, d.dpi.max, d.dpi.step, d.dpi.value, fmt, v => set('dpi', v), this, d.dpi.choices);
             head.add_child(s.valueLabel);
             if (d.dpi.default && d.dpi.value !== d.dpi.default) {
                 const reset = button('Default', '', () => set('dpi', d.dpi.default));
@@ -1199,8 +1228,8 @@ class BluetoothMonitorIndicator extends PanelMenu.Button {
         this.allowing = true;
         this._refresh();
         proc.wait_async(null, () => {
-            if (!this._extension.collector)
-                return;     // disabled meanwhile
+            if (this._destroyed)
+                return;     // disabled meanwhile (and maybe enabled again: a new indicator)
             this.allowing = false;
             this.send({cmd: 'refresh'});
             this._refresh();
@@ -1210,21 +1239,26 @@ class BluetoothMonitorIndicator extends PanelMenu.Button {
     // ------------------------------------------------------------ Bluetooth
 
     _onBluetooth() {
-        // Finished actions leave the pending list; a headset that connected becomes the output.
+        this._checkPending();
+        this.syncScan();
+        if (this.menu.isOpen && this._panel.page === 'bt')
+            this._panel.rebuild();
+    }
+
+    // Finished actions leave the pending list (when BlueZ shows the result, or when the
+    // helper has exited); a headset or speaker that connected becomes the audio output.
+    _checkPending(finished = null) {
         for (const [address, entry] of [...this.btPending]) {
             const d = this.bluetooth.find(address);
             const done = (entry.action === 'connecting' && d?.connected) ||
                 (entry.action === 'disconnecting' && d && !d.connected) ||
                 (entry.action === 'forgetting' && (!d || !d.known));
-            if (!done)
+            if (!done && address !== finished)
                 continue;
             this._clearPending(address);
-            if (entry.action === 'connecting')
+            if (entry.action === 'connecting' && d?.connected)
                 this._extension.spawn(['python3', '-I', this._extension.script('audio-default.py'), address]);
         }
-        this.syncScan();
-        if (this.menu.isOpen && this._panel.page === 'bt')
-            this._panel.rebuild();
     }
 
     _clearPending(address) {
@@ -1237,15 +1271,25 @@ class BluetoothMonitorIndicator extends PanelMenu.Button {
     btAction(action, address, pending) {
         if (!ADDRESS_RE.test(address) || this.btPending.has(address))
             return;
-        if (!this._extension.spawn(['bash', this._extension.script('bt-device.sh'), action, address]))
+        const proc = this._extension.spawn(['bash', this._extension.script('bt-device.sh'), action, address]);
+        if (!proc)
             return;
+        // A helper that runs on after the extension is disabled (the screen locked) finishes
+        // its pairing or connection; only this indicator stops listening.
+        proc.wait_async(null, () => {
+            if (this._destroyed || this.btPending.get(address)?.proc !== proc)
+                return;
+            this._checkPending(address);
+            if (this.menu.isOpen && this._panel.page === 'bt')
+                this._panel.rebuild();
+        });
         const timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, PENDING_TIMEOUT, () => {
             this.btPending.delete(address);
             if (this.menu.isOpen)
                 this._panel.rebuild();
             return GLib.SOURCE_REMOVE;
         });
-        this.btPending.set(address, {action: pending, timer});
+        this.btPending.set(address, {action: pending, timer, proc});
         this._panel.rebuild();
     }
 
@@ -1300,6 +1344,7 @@ class BluetoothMonitorIndicator extends PanelMenu.Button {
     }
 
     _onDestroy() {
+        this._destroyed = true;
         this.stopScan();
         for (const address of [...this.btPending.keys()])
             this._clearPending(address);

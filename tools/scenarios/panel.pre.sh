@@ -1,6 +1,5 @@
 # Test-only patch of the copied extension: the fake collector, fake BlueZ devices, then
 # screenshots of the bar and every page, and each action once (all against tools/mock-bin).
-cp "$ROOT/tools/scenarios/fake-collector.py" "$EXT/scripts/bluetooth-monitor.py"
 cat >> "$EXT/extension.js" <<'JS'
 import Shell from 'gi://Shell';
 const FAKE_BT = [
@@ -53,6 +52,11 @@ BluetoothMonitorExtension.prototype.enable = function () {
         ind._panel.rebuild();
         await wait(800);
         await shot('settings-cards');
+        // A scroll on the DPI slider, then a rebuild before its send delay: the change must still go out.
+        const slider = find(ind._panel.actor, 'btmon-slider');
+        slider.value = 0.5;
+        ind._panel.rebuild();
+        await wait(300);
         // Each write once, through the real widgets: a toggle, a wheel-mode pill.
         find(ind._panel.actor, 'btmon-toggle')?.emit('clicked', 1);
         const pill = find(ind._panel.actor, 'btmon-choice', true);

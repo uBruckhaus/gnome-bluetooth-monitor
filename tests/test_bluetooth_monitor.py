@@ -354,3 +354,41 @@ class BluezTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GnomePortFixes(unittest.TestCase):
+    """Fixes from the GNOME port's review: restoring the wheel mode, first-seen restore, DPI choices."""
+
+    class FakeDev:
+        def __init__(self):
+            self.calls = []
+
+        def set_smartshift(self, mode, threshold=None):
+            self.calls.append(("smartshift", mode, threshold))
+
+        def set_dpi(self, value):
+            self.calls.append(("dpi", value))
+
+    def monitor(self, saved):
+        m = ld.Monitor.__new__(ld.Monitor)
+        m.store = ld.SettingsStore(path=os.path.join(tempfile.mkdtemp(), "s.json"))
+        for k, v in saved.items():
+            m.store.data.setdefault("k", {})[k] = v
+        return m
+
+    def test_saved_ratchet_survives_a_saved_threshold(self):
+        dev = self.FakeDev()
+        self.monitor({"smartshift": "ratchet", "threshold": 12}).reapply(dev, "k")
+        self.assertEqual(dev.calls, [("smartshift", "ratchet", None)])
+
+    def test_saved_smartshift_keeps_its_threshold(self):
+        dev = self.FakeDev()
+        self.monitor({"smartshift": "smartshift", "threshold": 12, "dpi": 1600}).reapply(dev, "k")
+        self.assertEqual(dev.calls, [("smartshift", "smartshift", 12), ("dpi", 1600)])
+
+    def test_dpi_snaps_to_choices_and_steps(self):
+        self.assertEqual(ld.valid_dpi({"min": 400, "max": 1600, "step": 0, "choices": [400, 800, 1600]}, 1100), 800)
+        self.assertEqual(ld.valid_dpi({"min": 200, "max": 8000, "step": 50}, 1234), 1250)
+        self.assertEqual(ld.valid_dpi({"min": 200, "max": 8000, "step": 50}, 99999), 8000)
+        with self.assertRaises(ValueError):
+            ld.valid_dpi(None, 800)

@@ -29,7 +29,17 @@ gsettings set org.gnome.shell enabled-extensions "['$UUID']"
 gsettings set org.gnome.shell welcome-dialog-last-shown-version "$(gnome-shell --version | awk '{print $3}')"
 [ "$(gsettings get org.gnome.shell enabled-extensions)" = "['$UUID']" ] || { echo "isolated dconf not working" >&2; exit 1; }
 SCENARIO=${1:-panel}
-[ -f "$ROOT/tools/scenarios/$SCENARIO.pre.sh" ] && . "$ROOT/tools/scenarios/$SCENARIO.pre.sh"
+[ -f "$ROOT/tools/scenarios/$SCENARIO.sh" ] || { echo "no scenario $SCENARIO" >&2; exit 1; }
+# The real helper talks HID++ to /dev/hidraw directly (no PATH stand-in can catch that):
+# the test shell only ever runs the fake one, or it does not start at all.
+cp "$ROOT/tools/scenarios/fake-collector.py" "$EXT/scripts/bluetooth-monitor.py" \
+    && grep -q "Stand-in for scripts/bluetooth-monitor.py" "$EXT/scripts/bluetooth-monitor.py" \
+    || { echo "could not install the fake collector; not starting" >&2; exit 1; }
+if [ -f "$ROOT/tools/scenarios/$SCENARIO.pre.sh" ]; then
+    . "$ROOT/tools/scenarios/$SCENARIO.pre.sh" || { echo "scenario setup failed" >&2; exit 1; }
+fi
+grep -q "Stand-in for scripts/bluetooth-monitor.py" "$EXT/scripts/bluetooth-monitor.py" \
+    || { echo "the scenario replaced the fake collector; not starting" >&2; exit 1; }
 
 gnome-shell --headless --wayland --no-x11 --virtual-monitor ${MONITOR:-1920x1080} \
     --wayland-display bt-test >"$T/shell.log" 2>&1 &

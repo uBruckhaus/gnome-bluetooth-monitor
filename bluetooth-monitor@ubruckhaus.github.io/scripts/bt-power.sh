@@ -3,12 +3,10 @@
 # switch (gnome-settings-daemon follows the block, and it survives a reboot).
 # Usage: bt-power.sh on|off
 set -u
+# The default controller: the one the panel shows (GnomeBluetooth's default adapter).
+# With two, another powered controller must not make "on" stop early.
 powered() {
-  local c
-  for c in $(timeout 2s bluetoothctl list 2>/dev/null | awk '{print $2}'); do
-    [[ $(timeout 2s bluetoothctl show "$c" 2>/dev/null) == *"Powered: yes"* ]] && return 0
-  done
-  return 1
+  [[ $(timeout 2s bluetoothctl show 2>/dev/null) == *"Powered: yes"* ]]
 }
 wait_powered() {
   local deadline=$((SECONDS + 2))

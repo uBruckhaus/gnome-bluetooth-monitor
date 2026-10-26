@@ -518,6 +518,21 @@ def dpi_range(choices):
     return {"min": choices[0], "max": choices[-1], "step": 0, "choices": choices}
 
 
+def valid_dpi(dpi, value):
+    """A DPI the device offers: one of its listed choices, or a step inside its range."""
+    if not isinstance(dpi, dict):
+        raise ValueError("no DPI setting")
+    value = int(value)
+    choices = [c for c in dpi.get("choices") or [] if isinstance(c, int)]
+    if choices:
+        return min(choices, key=lambda c: abs(c - value))
+    low, high, step = int(dpi.get("min", 0)), int(dpi.get("max", 0)), int(dpi.get("step") or 1)
+    if high <= 0:
+        raise ValueError("no DPI range")
+    value = max(low, min(high, value))
+    return low + round((value - low) / step) * step
+
+
 def smartshift_state(wheel_mode, auto, enhanced):
     if wheel_mode == 1:
         mode = "freespin"
@@ -838,6 +853,7 @@ class Monitor:
             n.close()
         for did in [k for k, d in self.devices.items() if d.node is n]:
             self.devices.pop(did, None)
+            self.online.pop(did, None)  # plugged in again: restore its settings
 
     def device_for(self, did, node, index):
         d = self.devices.get(did)
@@ -935,7 +951,9 @@ class Monitor:
         entry["protocol"] = proto
         if proto < 2.0:
             return entry
-        if was_online is False:
+        # The first time a device is seen (helper start, receiver plugged in) and every time
+        # it comes back: after a reboot it is already on when the helper starts.
+        if was_online is not True:
             self.reapply(dev, key)
         for field, reader in (("name", dev.name), ("battery", dev.battery), ("dpi", dev.dpi),
                               ("smartshift", dev.smartshift), ("wheel", dev.wheel), ("fnswap", dev.fnswap)):
@@ -951,8 +969,20 @@ class Monitor:
         return entry
 
     def reapply(self, dev, key):
-        """Write the remembered settings again after the device reconnects."""
+        """Write the remembered settings again after the device reconnects.
+
+        The wheel mode and its sensitivity go out as one write: applied one after the
+        other, a saved threshold would switch a saved ratchet or free-spin mode back to
+        SmartShift (and a SmartShift mode alone would lose the threshold)."""
         saved = self.store.get(key)
+        mode, threshold = saved.pop("smartshift", None), saved.pop("threshold", None)
+        try:
+            if mode in ("smartshift", "ratchet", "freespin"):
+                dev.set_smartshift(mode, threshold if mode == "smartshift" else None)
+            elif threshold is not None:
+                dev.set_smartshift("smartshift", int(threshold))
+        except (HidppError, Timeout, ValueError, TypeError):
+            pass
         for field, value in saved.items():
             try:
                 self.apply(dev, field, value, remember=None)
@@ -988,6 +1018,8 @@ class Monitor:
         if not dev or not entry or not entry.get("online"):
             self.note("errNotConnected")
             return
+        if key == "dpi":
+            value = valid_dpi(entry.get("dpi"), value)
         try:
             self.apply(dev, key, value, remember=entry["key"])
             self.note("")

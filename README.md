@@ -53,6 +53,7 @@ sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=hi
 - GNOME Shell extension instead of a Quickshell bar widget; settings in GSettings instead of `shell.json`; no language setting and no plugin information page.
 - Omarchy's `omarchy-bluetooth-device`, `omarchy-bluetooth-power` and `omarchy-audio-output-set-default` are replaced by the small helpers above, which do the same steps.
 - The helper reads its stdin commands with its own line buffer: two commands arriving together (for example "options" and "open" at start) were handled late before.
+- Fixed in the helper: a saved Ratchet or Free spin mode is no longer switched back to SmartShift when the settings are written again (and SmartShift keeps its saved sensitivity); saved settings are also written when a device is first seen, so they come back after a reboot or after plugging the receiver in again; a DPI value is checked against what the device offers before it is written.
 
 ## Remove
 
