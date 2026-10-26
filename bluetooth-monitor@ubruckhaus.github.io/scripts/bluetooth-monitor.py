@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Logitech receivers and devices, plus other battery-powered peripherals, for the
-Omarchy bar (stdlib only).
+GNOME top bar (stdlib only).
 
 Speaks Logitech's HID++ protocol directly over /dev/hidraw: lists Unifying, Bolt,
 Nano and Lightspeed receivers with their paired devices, plus Logitech devices on
@@ -17,7 +17,7 @@ Other peripherals (Bluetooth mice, keyboards, trackpads, headsets, controllers, 
 come from UPower (`upower --dump`, refreshed on `upower --monitor` events): battery
 only, no settings.
 
-Settings changed from the panel are remembered per device (~/.config/omarchy/
+Settings changed from the panel are remembered per device (~/.config/
 bluetooth-monitor/settings.json) and written again when the device reconnects,
 because some devices forget them when they power off.
 """
@@ -111,7 +111,7 @@ def clean(text, limit=MAX_NAME):
 
 def config_dir():
     base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
-    return os.path.join(base, "omarchy", "bluetooth-monitor")
+    return os.path.join(base, "bluetooth-monitor")
 
 
 # ---------------------------------------------------------------------------- discovery
@@ -1044,6 +1044,7 @@ class Monitor:
 
     def loop(self, stdin):
         next_scan = 0.0
+        pending = b""
         watch_proc = self.watch_proc
         fds = [stdin]
         if watch_proc:
@@ -1066,10 +1067,17 @@ class Monitor:
                 for path in list(self.nodes):
                     self.drop(path)
             if stdin in r:
-                line = stdin.readline()
-                if not line:
+                # Raw reads with our own line buffer: a buffered readline() after select()
+                # would leave a second command that arrived in the same chunk unread
+                # until more input comes (e.g. "options" and "open" sent together).
+                chunk = os.read(stdin.fileno(), 65536)
+                if not chunk:
                     return
-                self.handle(line)
+                pending += chunk
+                *lines, pending = pending.split(b"\n")
+                pending = pending[-65536:]
+                for line in lines:
+                    self.handle(line.decode("utf-8", "replace"))
                 next_scan = min(next_scan, time.monotonic() + 0.05)
             if watch_proc and watch_proc.stdout in r:
                 chunk = os.read(watch_proc.stdout.fileno(), 4096)

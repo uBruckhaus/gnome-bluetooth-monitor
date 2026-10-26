@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location("ld", os.path.join(HERE, "..", "scripts", "bluetooth-monitor.py"))
+spec = importlib.util.spec_from_file_location("ld", os.path.join(HERE, "..", "bluetooth-monitor@ubruckhaus.github.io", "scripts", "bluetooth-monitor.py"))
 ld = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ld)
 

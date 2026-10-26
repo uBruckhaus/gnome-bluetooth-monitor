@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.bluetooth-monitor" path="/org/gnome/shell/extensions/bluetooth-monitor/">
+    <key name="low-at" type="i">
+      <range min="1" max="99"/>
+      <default>25</default>
+      <summary>Low battery warning (percent)</summary>
+      <description>The bar icon turns orange when a connected device's battery is at or below this level.</description>
+    </key>
+    <key name="critical-at" type="i">
+      <range min="1" max="99"/>
+      <default>10</default>
+      <summary>Critical battery warning (percent)</summary>
+      <description>The bar icon turns red when a connected device's battery is at or below this level.</description>
+    </key>
+    <key name="other-devices" type="b">
+      <default>true</default>
+      <summary>Show other Bluetooth devices</summary>
+      <description>Trackpads, earphones, controllers and other devices from UPower and BlueZ (battery only).</description>
+    </key>
+    <key name="hidden" type="as">
+      <default>[]</default>
+      <summary>Hidden devices</summary>
+      <description>Stable keys (model id, serial or Bluetooth address) of devices hidden from the list and the bar icon.</description>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,9 @@
+#!/bin/bash
+# Test stand-in for bluetoothctl: logs the call; never talks to BlueZ.
+echo "bluetoothctl $*" >> "${MOCK_LOG:-/dev/null}"
+case "$*" in
+  *"scan on"*) trap 'exit 0' TERM INT; while :; do sleep 1; done ;;
+  list*) echo "Controller 00:00:00:00:00:01 mock [default]" ;;
+  show*) echo "Controller 00:00:00:00:00:01 (public)"; echo "	Powered: yes" ;;
+esac
+exit 0

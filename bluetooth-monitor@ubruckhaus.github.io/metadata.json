@@ -1,0 +1,9 @@
+{
+  "uuid": "bluetooth-monitor@ubruckhaus.github.io",
+  "name": "Bluetooth Monitor",
+  "description": "Every wireless mouse, keyboard, trackpad, earphone and controller at a glance: battery levels and how each one is connected (Bluetooth or a Logitech USB dongle) in one picture, plus a Bluetooth page that scans, pairs, connects, forgets devices and switches Bluetooth on or off. The top bar icon turns orange or red and shows which device runs low. Logitech Unifying and Bolt devices also get DPI, SmartShift, scrolling and Fn-key settings, no Solaar needed. Needs python3.",
+  "shell-version": ["51"],
+  "url": "https://github.com/uBruckhaus/gnome-bluetooth-monitor",
+  "settings-schema": "org.gnome.shell.extensions.bluetooth-monitor",
+  "version-name": "0.1.0"
+}

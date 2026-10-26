@@ -4,17 +4,17 @@
 # with Logitech's vendor id and Logitech devices on Bluetooth, granted with uaccess (only
 # the user at the seat, only while logged in).
 set -euo pipefail
-rule=/etc/udev/rules.d/42-omarchy-logitech-devices.rules
+rule=/etc/udev/rules.d/42-logitech-hidpp-uaccess.rules
 cat > "$rule.tmp" <<'RULES'
-# Managed by ubruckhaus.logitech-devices (Omarchy plugin)
-ACTION == "remove", GOTO="omarchy_logitech_end"
-SUBSYSTEM != "hidraw", GOTO="omarchy_logitech_end"
-ATTRS{idVendor}=="046d", GOTO="omarchy_logitech_apply"
-KERNELS == "0005:046D:*", GOTO="omarchy_logitech_apply"
-GOTO="omarchy_logitech_end"
-LABEL="omarchy_logitech_apply"
+# Managed by the Bluetooth Monitor GNOME extension (bluetooth-monitor@ubruckhaus.github.io)
+ACTION == "remove", GOTO="logitech_hidpp_end"
+SUBSYSTEM != "hidraw", GOTO="logitech_hidpp_end"
+ATTRS{idVendor}=="046d", GOTO="logitech_hidpp_apply"
+KERNELS == "0005:046D:*", GOTO="logitech_hidpp_apply"
+GOTO="logitech_hidpp_end"
+LABEL="logitech_hidpp_apply"
 TAG+="uaccess"
-LABEL="omarchy_logitech_end"
+LABEL="logitech_hidpp_end"
 RULES
 chmod 0644 "$rule.tmp"
 mv -f "$rule.tmp" "$rule"

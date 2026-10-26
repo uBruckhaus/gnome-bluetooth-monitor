@@ -1,0 +1,5 @@
+#!/bin/bash
+# Test stand-in: logs the call, changes nothing.
+echo "busctl $*" >> "${MOCK_LOG:-/dev/null}"
+[ "busctl" = pactl ] && [ "$1" = -f ] && echo "[]"
+exit 0

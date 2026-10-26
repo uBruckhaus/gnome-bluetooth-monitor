@@ -1,0 +1,356 @@
+/* Panel */
+.btmon-panel {
+  width: 460px;
+  spacing: 10px;
+  /* room on the right for the overlay scrollbar */
+  padding: 4px 14px 4px 6px;
+}
+
+.btmon-body {
+  spacing: 10px;
+}
+
+.btmon-hero {
+  spacing: 12px;
+}
+
+.btmon-hero-icon {
+  icon-size: 32px;
+}
+
+.btmon-hero-buttons {
+  spacing: 6px;
+}
+
+.btmon-title {
+  font-weight: bold;
+  font-size: 1.15em;
+}
+
+.btmon-pill {
+  font-size: 0.85em;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+}
+
+.btmon-accent {
+  color: -st-accent-color;
+}
+
+.btmon-warning {
+  color: #e01b24;
+}
+
+.btmon-separator {
+  height: 1px;
+  margin: 2px 0;
+  background-color: rgba(128, 128, 128, 0.3);
+}
+
+.btmon-section {
+  font-size: 0.8em;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.btmon-strong,
+.btmon-name {
+  font-weight: bold;
+}
+
+.btmon-caption {
+  font-size: 0.9em;
+}
+
+.btmon-hint {
+  font-size: 0.82em;
+}
+
+.btmon-value {
+  font-feature-settings: "tnum";
+}
+
+.btmon-icon {
+  icon-size: 16px;
+}
+
+/* Buttons, choices, switches */
+.btmon-button {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  background-color: rgba(128, 128, 128, 0.08);
+}
+
+.btmon-button:hover,
+.btmon-button:focus {
+  background-color: rgba(128, 128, 128, 0.2);
+}
+
+.btmon-button:checked {
+  background-color: rgba(128, 128, 128, 0.3);
+}
+
+.btmon-button-box {
+  spacing: 6px;
+}
+
+.btmon-button-icon {
+  icon-size: 16px;
+}
+
+.btmon-button-label {
+  font-size: 0.9em;
+}
+
+.btmon-small {
+  padding: 1px 8px;
+  margin-left: 6px;
+}
+
+.btmon-danger {
+  color: #e01b24;
+  border-color: #e01b24;
+}
+
+.btmon-eye {
+  padding: 3px 6px;
+  border-color: transparent;
+  background-color: transparent;
+  margin-left: 4px;
+}
+
+.btmon-choices {
+  spacing: 4px;
+}
+
+.btmon-choice {
+  font-size: 0.85em;
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+}
+
+.btmon-choice:hover {
+  background-color: rgba(128, 128, 128, 0.2);
+}
+
+.btmon-choice:checked {
+  background-color: -st-accent-color;
+  border-color: -st-accent-color;
+  color: -st-accent-fg-color;
+}
+
+.btmon-toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 99px;
+  padding: 2px;
+  background-color: rgba(128, 128, 128, 0.35);
+}
+
+.btmon-toggle:checked {
+  background-color: -st-accent-color;
+}
+
+.btmon-toggle-knob {
+  width: 18px;
+  height: 18px;
+  border-radius: 99px;
+  background-color: #ffffff;
+}
+
+.btmon-setting {
+  spacing: 12px;
+}
+
+.btmon-setting-below {
+  spacing: 6px;
+}
+
+.btmon-page-header {
+  spacing: 12px;
+}
+
+.btmon-power {
+  spacing: 8px;
+}
+
+.btmon-footer {
+  spacing: 8px;
+}
+
+/* Setup card */
+.btmon-setup {
+  spacing: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid -st-accent-color;
+  background-color: rgba(128, 128, 128, 0.1);
+}
+
+/* Connection tree */
+.btmon-tree {
+  spacing: 0;
+}
+
+.btmon-tree-pc {
+  spacing: 10px;
+  padding-bottom: 6px;
+}
+
+.btmon-node {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  background-color: rgba(128, 128, 128, 0.08);
+}
+
+.btmon-node-pc {
+  border-radius: 99px;
+  border-color: -st-accent-color;
+  background-color: -st-accent-color;
+  color: -st-accent-fg-color;
+}
+
+.btmon-node-live {
+  border-color: -st-accent-color;
+}
+
+.btmon-node-icon {
+  icon-size: 16px;
+}
+
+/* The trunk runs down the left of each link, under the PC badge's centre. */
+.btmon-link {
+  margin-left: 14px;
+  spacing: 0;
+}
+
+.btmon-trunk {
+  width: 2px;
+  background-color: rgba(128, 128, 128, 0.55);
+}
+
+.btmon-trunk-last {
+  height: 15px;
+}
+
+.btmon-link-node,
+.btmon-link-text {
+  margin-right: 8px;
+}
+
+.btmon-branch {
+  width: 12px;
+  margin-right: 0;
+  height: 2px;
+  margin-top: 14px;
+  background-color: rgba(128, 128, 128, 0.55);
+}
+
+.btmon-branch.btmon-live {
+  background-color: -st-accent-color;
+}
+
+.btmon-link-text {
+  width: 118px;
+  padding-top: 2px;
+  padding-bottom: 8px;
+}
+
+.btmon-chips {
+  spacing: 4px;
+  padding-bottom: 8px;
+}
+
+.btmon-chip-row {
+  spacing: 4px;
+}
+
+.btmon-dots {
+  font-weight: bold;
+  color: rgba(128, 128, 128, 0.6);
+}
+
+.btmon-chip {
+  spacing: 6px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.btmon-chip-online {
+  border-color: -st-accent-color;
+  background-color: rgba(128, 128, 128, 0.1);
+}
+
+.btmon-chip-icon {
+  icon-size: 14px;
+}
+
+/* Device cards */
+.btmon-card {
+  spacing: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(128, 128, 128, 0.15);
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+.btmon-card-online {
+  border-color: -st-accent-color;
+  background-color: rgba(128, 128, 128, 0.1);
+}
+
+.btmon-card-main {
+  spacing: 10px;
+}
+
+.btmon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 99px;
+  background-color: rgba(128, 128, 128, 0.15);
+}
+
+.btmon-badge-online {
+  background-color: -st-accent-color;
+  color: -st-accent-fg-color;
+}
+
+.btmon-badge-icon {
+  icon-size: 18px;
+}
+
+.btmon-chevron {
+  icon-size: 14px;
+}
+
+.btmon-group {
+  spacing: 6px;
+}
+
+.btmon-slider-row {
+  spacing: 10px;
+}
+
+.btmon-slider {
+  min-width: 120px;
+}
+
+/* Bluetooth page */
+.btmon-bt-row {
+  spacing: 10px;
+}
+
+.btmon-bt-icon {
+  icon-size: 22px;
+}
+
+.btmon-bt-actions {
+  spacing: 6px;
+}
