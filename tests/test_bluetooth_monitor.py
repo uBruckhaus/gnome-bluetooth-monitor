@@ -2,6 +2,8 @@ import importlib.util
 import json
 import os
 import tempfile
+import threading
+import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -385,6 +387,26 @@ class GnomePortFixes(unittest.TestCase):
         dev = self.FakeDev()
         self.monitor({"smartshift": "smartshift", "threshold": 12, "dpi": 1600}).reapply(dev, "k")
         self.assertEqual(dev.calls, [("smartshift", "smartshift", 12), ("dpi", 1600)])
+
+    def test_two_commands_in_one_chunk_are_both_handled(self):
+        # The panel keeps stdin open: both commands must be handled without more input.
+        m = ld.Monitor.__new__(ld.Monitor)
+        m.watch_proc, m.nodes, m.opened, m.snapshot, handled = None, {}, False, {}, []
+        m.scan, m.emit = (lambda: None), (lambda: None)
+        m.handle = lambda line: handled.append(line.strip())
+        read_fd, write_fd = os.pipe()
+        stdin = os.fdopen(read_fd, "r")  # text mode, like sys.stdin
+        worker = threading.Thread(target=m.loop, args=(stdin,), daemon=True)
+        worker.start()
+        os.write(write_fd, b'{"cmd": "options"}\n{"cmd": "open"}\n')
+        deadline = time.monotonic() + 2
+        while len(handled) < 2 and time.monotonic() < deadline:
+            time.sleep(0.02)
+        got = list(handled)
+        os.close(write_fd)
+        worker.join(2)
+        stdin.close()
+        self.assertEqual(got, ['{"cmd": "options"}', '{"cmd": "open"}'])
 
     def test_dpi_snaps_to_choices_and_steps(self):
         self.assertEqual(ld.valid_dpi({"min": 400, "max": 1600, "step": 0, "choices": [400, 800, 1600]}, 1100), 800)
